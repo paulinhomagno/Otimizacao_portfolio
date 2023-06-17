@@ -33,7 +33,10 @@ fqdn==1.5.1
 frozendict==2.3.8
 gitdb==4.0.10
 GitPython==3.1.31
+h11==0.14.0
 html5lib==1.1
+httpcore==0.16.3
+httpx==0.23.3
 idna==3.4
 importlib-metadata==6.6.0
 importlib-resources==5.12.0
@@ -79,7 +82,7 @@ notebook_shim==0.2.3
 numpy==1.24.3
 osqp==0.6.3
 packaging==23.1
-pandas==2.0.2
+pandas==1.5.3
 pandas-datareader==0.10.0
 pandocfilters==1.5.0
 parso==0.8.3
@@ -100,6 +103,7 @@ Pympler==1.0.1
 pyparsing==3.0.9
 pyportfolioopt==1.5.5
 pyrsistent==0.19.3
+python-bcb==0.1.8
 python-dateutil==2.8.2
 python-json-logger==2.0.7
 pytz==2023.3
@@ -112,6 +116,7 @@ qtconsole==5.4.3
 QtPy==2.3.1
 requests==2.31.0
 rfc3339-validator==0.1.4
+rfc3986==1.5.0
 rfc3986-validator==0.1.1
 rich==13.3.5
 scikit-learn==1.2.2
