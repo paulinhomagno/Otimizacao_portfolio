@@ -13,7 +13,7 @@ import requests
 
 from HRP_portfolio_opt import HRP
 from Monte_Carlo_Simulate import monte_carlo_projection
-from  calculate_selic import calculate_average_selic_annual
+from  calculates_selic import calculate_average_selic_annual
 from asset_download import stocks_dataframe
 from plot_EF import plot_efficient_frontier, data_efficient_frontier
 from CAPM_expected import capm_calc
@@ -151,6 +151,8 @@ if button_otm:
         # weights and beta dataframe
         ef1_weights = dict(ef1.clean_weights())
         ef1_weights2 = pd.DataFrame(ef1_weights.items(), columns = ['Ativos', 'Pesos'])
+        
+        ef1_weights2['Valor à aplicar'] =  ef1_weights2['Pesos'] * initial_inv
         ef1_weights2['Beta'] = dict_betas.values()
 
     
@@ -199,6 +201,7 @@ if button_otm:
         # weights and beta dataframe to min. vol.
         ef2_weights = ef2.clean_weights()
         ef2_weights2 = pd.DataFrame(ef2_weights.items(), columns = ['Ativos', 'Pesos'])
+        ef2_weights2['Valor à aplicar'] =  ef2_weights2['Pesos'] * initial_inv
         ef2_weights2['Beta'] = dict_betas.values()
 
         # beta of the portfolio min vol
@@ -276,7 +279,7 @@ if button_otm:
         max_sqrt_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}%' 
 
         # show max quadratic utility dataframes
-        col1.write('Máxima utilidade quadrática (Aversão ao risco = 1):')
+        col1.write('Máxima utilidade quadrática:')
         col1.write(max_sqrt_df)
         col1.write('Pesos de cada ativo:')
         col1.dataframe(ef3_weights2)
