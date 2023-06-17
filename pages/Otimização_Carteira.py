@@ -11,9 +11,9 @@ import pandas as pd
 import yfinance as yf
 import requests
 
-from HRP_portfolio_opt import HRP
+from HRP_PortfOpt import HRP
 from Monte_Carlo_Simulate import monte_carlo_projection
-from  calculates_selic import calculate_average_selic_annual
+from  SELIC_tax import calculate_average_selic_annual
 from asset_download import stocks_dataframe
 from plot_EF import plot_efficient_frontier, data_efficient_frontier
 from CAPM_expected import capm_calc
