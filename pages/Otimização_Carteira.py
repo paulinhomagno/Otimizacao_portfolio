@@ -40,7 +40,7 @@ st.title(':white[Otimização da carteira]')
 keywords = st_tags(
     label=' Digite os código dos ativos*:',
     text='Pressione enter para adicionar mais',
-    maxtags = 4,
+    maxtags = 15,
     key='1')
 
 # website for asset code information
