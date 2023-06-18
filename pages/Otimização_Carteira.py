@@ -80,9 +80,9 @@ if button_otm:
         # extract values assets function
         data = stocks_dataframe(start_date,0, keywords)
 
-        returns = data.pct_change().iloc[1:].apply(lambda x: np.log1p(x)).dropna()
-
-        # annual returns
+        returns = data.pct_change().apply(lambda x: np.log1p(x)).fillna(0, axis = 1)
+        returns.replace([np.inf, -np.inf, np.nan],0 , inplace=True)
+        
         mean = returns.mean() *252
 
         # deviation
@@ -94,10 +94,27 @@ if button_otm:
         
         # calculates annual tax free risk 
         tax_w_risk = calculate_average_selic_annual(start_date.year)
-        expected_r = expected_returns.capm_return(data)
+        expected_r = expected_returns.capm_return(data, risk_free_rate = tax_w_risk, log_returns = True)
         
         estimative = risk_models.sample_cov(data, frequency = 252)
         S = risk_models.CovarianceShrinkage(data).ledoit_wolf()
+        
+        # pypfopt is not adjusted for inf, -inf, and nan values in returns and risk calculation
+        # we use an conditional treatment to calculate log returns and covariance matrix and replace them in the variables
+        if np.isnan(expected_r.values).any()or ~np.isfinite(expected_r.values).any():
+            #expected = data.pct_change().apply(lambda x: np.log1p(x))
+            
+            expected_r = mean #* 252#replace([np.inf, -np.inf, np.nan], 0).mean() * 252
+            
+            S = cov_matrix
+            
+
+        #fig, ax = plt.subplots(figsize = (2,2))
+        #sns.heatmap(returns.corr(), annot = True, cmap="Blues");
+        st.write("Correlação dos ativos:")
+        fig = px.imshow(returns.corr(), text_auto = True)
+        
+        st.plotly_chart(fig, width = 300)
 
         # benchmark for beta ibov
         ibov = '^BVSP'
@@ -108,11 +125,24 @@ if button_otm:
         ibov_mean = df_ibov_r.mean()
         
         # betas calculate
-        dict_betas = {
-            i: round(LinearRegression().fit(df_ibov_r.values.reshape(-1, 1), 
-            data[i].pct_change().dropna().values.reshape(-1, 1)).coef_[0][0], 
-            2) for i in data.columns
-            }
+        dict_betas = {}
+            #i: round(LinearRegression().fit(df_ibov_r.values.reshape(-1, 1), 
+            #data[i].pct_change().dropna().values.reshape(-1, 1)).coef_[0][0], 
+            #2) for i in data.columns
+            #}
+
+        for i in data.columns:
+            asset_r = data[i].pct_change()
+            asset_r.dropna(inplace = True)
+
+            if asset_r.index[-1] != df_ibov_r.index[-1]:
+                df_ibov_r.drop(df_ibov_r.index[-1], inplace = True)
+
+            asset_r.replace([np.inf, -np.inf, np.nan],0 , inplace=True)
+            model = LinearRegression()
+            reg = model.fit(df_ibov_r.values.reshape(-1, 1), asset_r.values.reshape(-1, 1))
+            beta_asset = reg.coef_[0][0]
+            dict_betas[i] = round(beta_asset,2)
 
         dict_capm = {}
         for key, value in dict_betas.items():
@@ -123,7 +153,7 @@ if button_otm:
         # columns for optimization information
         # 
         # Sharpe ratio max and vol min        
-        col1, col2 = st.columns(2, gap = "large")
+        col1, col2 = st.columns(2, gap = "medium")
 
 
         # EfficientFrontier by sharpe ratio
@@ -171,11 +201,12 @@ if button_otm:
         # add capm value to metrics dataframe
         sharpe_df.loc['CAPM'] = f'{round(capm_value *100, 2)}%' 
 
+       
         # show max sharpe dataframes
         col1.write('Maior índice Sharpe na Fronteira Eficiente:')
-        col1.write(sharpe_df)
+        col1.data_editor(sharpe_df)
         col1.write('Pesos de cada ativo:')
-        col1.dataframe(ef1_weights2)
+        col1.data_editor(ef1_weights2, hide_index  = True)
 
         #for keys, value in ef1_weights.items():
         #   col1.markdown(f'<p>{keys}<p style="color: Green;">{round(value *100,2)}%</p>', unsafe_allow_html=True
@@ -222,9 +253,9 @@ if button_otm:
 
         # show min vol dataframes
         col2.write('Mínima volatilidade na Fronteira Eficiente:')
-        col2.write(risk_df)
+        col2.data_editor(risk_df)
         col2.write('Pesos de cada ativo:')
-        col2.dataframe(ef2_weights2)
+        col2.data_editor(ef2_weights2, hide_index  = True)
 
         
         #col2.write('Índice Sharpe:')
@@ -243,7 +274,7 @@ if button_otm:
         st.markdown("---")
         
         # second area column, max quadratic utility and HRP
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2, gap = "medium")
 
         # Max quadratic utility optimization
         ef3 = EfficientFrontier(expected_r, S)
@@ -280,9 +311,9 @@ if button_otm:
 
         # show max quadratic utility dataframes
         col1.write('Máxima utilidade quadrática:')
-        col1.write(max_sqrt_df)
+        col1.data_editor(max_sqrt_df)
         col1.write('Pesos de cada ativo:')
-        col1.dataframe(ef3_weights2)
+        col1.data_editor(ef3_weights2, hide_index  = True)
 
 
 
@@ -322,9 +353,9 @@ if button_otm:
 
         # calculate values every assets according weights
         values_hrp = np.dot(weights_,initial_inv)
-
-        hrp_returns = data.pct_change().iloc[1:].apply(lambda x: np.log1p(x)).dropna()
-
+        
+        hrp_returns = data.pct_change().iloc[1:].apply(lambda x: np.log1p(x)).fillna(0, axis = 1)
+        hrp_returns.replace([np.inf, -np.inf, np.nan], 0, inplace = True)
         # annual returns
         hrp_mean = hrp_returns.mean() *252
 
@@ -336,13 +367,16 @@ if button_otm:
             return  (w* ret).sum()
 
         def cov_portfolio(w, cov_matrix):
-            # risk calculation    
+            # risk calculation  
             return np.sqrt(np.dot(w.T, (np.dot(cov_matrix, w))))
 
 
         sigma_ = cov_portfolio(weights_, cov_matrix)*100
         
         ret_ = return_portfolio(weights_, hrp_mean).sum() *100
+        np.nan_to_num(ret_, copy = False, nan = 0, posinf = 0, neginf = 0)
+        #ret_nan_to_num([(ret_ == np.inf) | (ret_ == -np.inf) | (ret_ == np.nan)] = 0 
+        #ret_[np.isinf(ret_)] = 0
         sharp_r_ = (ret_ - tax_w_risk) / sigma_
         
 
@@ -360,7 +394,7 @@ if button_otm:
         hrp_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}%' 
 
         col2.write('Otimização Hierarchical Risk Parity (HRP):')
-        col2.write(hrp_df)
+        col2.data_editor(hrp_df)
 
 
         #col2.write('Índice Sharpe:')
@@ -379,7 +413,7 @@ if button_otm:
         df_hrp['Beta'] = dict_betas.values()
         # show dataframe with assets and weights
         col2.write("Pesos de cada ativo:")    
-        col2.write(df_hrp)
+        col2.data_editor(df_hrp, hide_index  = True)
 
         
 
@@ -393,7 +427,7 @@ if button_otm:
 
 
         # filling the new columns with amount of every portfolio
-        for i in range(len(data)-1):
+        for i in range(len(data)):
             sum_all_sharpe = 0
             sum_all_risk = 0
             sum_all_return = 0
