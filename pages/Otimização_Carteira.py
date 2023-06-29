@@ -17,6 +17,7 @@ from  SELIC_tax import calculate_average_selic_annual
 from asset_download import stocks_dataframe
 from plot_EF import plot_efficient_frontier, data_efficient_frontier
 from CAPM_expected import capm_calc
+import plotly.graph_objects as go
 
 from sklearn.linear_model import LinearRegression
 from pypfopt import EfficientFrontier, EfficientSemivariance, expected_returns, risk_models
@@ -69,11 +70,11 @@ start_date = st.date_input('Data inicial:', value = min_data, max_value = max_da
 initial_inv = st.number_input("Digite o valor")
 
 # optimization button
-button_otm = st.button("Mostrar otimizações")
+button_otp = st.button("Mostrar otimizações")
 st.markdown('---')
 
 # processing optimizations button
-if button_otm:
+if button_otp:
 
     if initial_inv != 0:
 
@@ -144,14 +145,18 @@ if button_otm:
             beta_asset = reg.coef_[0][0]
             dict_betas[i] = round(beta_asset,2)
 
+        
         dict_capm = {}
         for key, value in dict_betas.items():
+            
             capm = tax_w_risk + value * (ibov_mean - tax_w_risk)
-            dict_capm[key] = f'{round(capm*100,2)}%'
+            dict_capm[key] = capm
 
-        st.write(f'DICIONARIO CAPM: {dict_capm}')
+        
         # columns for optimization information
         # 
+
+        st.subheader('Otimização por Índice Sharpe')
         # Sharpe ratio max and vol min        
         col1, col2 = st.columns(2, gap = "medium")
 
@@ -196,17 +201,20 @@ if button_otm:
         capm_value = capm_calc(list(data.columns), dict_betas, ef1_weights, ibov_mean, tax_w_risk) 
         
         # add beta portfolio to metrics dataframe
-        sharpe_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}%' 
+        sharpe_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}' 
     
         # add capm value to metrics dataframe
         sharpe_df.loc['CAPM'] = f'{round(capm_value *100, 2)}%' 
 
-       
+
+
+
+        
         # show max sharpe dataframes
-        col1.write('Maior índice Sharpe na Fronteira Eficiente:')
+        col1.write('Métricas:')
         col1.data_editor(sharpe_df)
-        col1.write('Pesos de cada ativo:')
-        col1.data_editor(ef1_weights2, hide_index  = True)
+        col2.write('Pesos de cada ativo:')
+        col2.data_editor(ef1_weights2, hide_index  = True)
 
         #for keys, value in ef1_weights.items():
         #   col1.markdown(f'<p>{keys}<p style="color: Green;">{round(value *100,2)}%</p>', unsafe_allow_html=True
@@ -216,7 +224,11 @@ if button_otm:
         list_tuples = list(zip(std_ef1, ret_ef1, sharpes_ef1))
         df_aux = pd.DataFrame(list_tuples, columns = ['Risco', 'Retorno', 'Índice Sharpe'])
                 
+        st.markdown('---')
 
+        st.subheader('Otimização pela Mínima Volatilidade')
+
+        col1, col2 = st.columns(2, gap = "medium")
 
         # min volatility optimization, CLA algorithm
         ef2 = CLA(expected_r, S)
@@ -245,15 +257,16 @@ if button_otm:
         capm_value = capm_calc(list(data.columns), dict_betas, ef2_weights, ibov_mean, tax_w_risk) 
 
         # add beta portfolio to metrics min vol dataframe
-        risk_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}%' 
+        risk_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}' 
 
         # add capm value to metrics dataframe
         risk_df.loc['CAPM'] = f'{round(capm_value *100, 2)}%' 
 
 
+        
         # show min vol dataframes
-        col2.write('Mínima volatilidade na Fronteira Eficiente:')
-        col2.data_editor(risk_df)
+        col1.write('Métricas:')
+        col1.data_editor(risk_df)
         col2.write('Pesos de cada ativo:')
         col2.data_editor(ef2_weights2, hide_index  = True)
 
@@ -273,6 +286,7 @@ if button_otm:
 
         st.markdown("---")
         
+        st.subheader('Otimização pelo Maior Retorno')
         # second area column, max quadratic utility and HRP
         col1, col2 = st.columns(2, gap = "medium")
 
@@ -305,15 +319,22 @@ if button_otm:
             
             sum_betas += (dict_betas[i] * ef3_weights2.loc[ef3_weights2['Ativos'] == i, "Pesos"].values[0])
 
+        
+        capm_value = capm_calc(list(data.columns), dict_betas, ef3_weights, ibov_mean, tax_w_risk) 
 
+        
         # add beta portfolio to metrics min vol dataframe
-        max_sqrt_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}%' 
+        max_sqrt_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}' 
 
+
+        # add capm value to metrics dataframe
+        max_sqrt_df.loc['CAPM'] = f'{round(capm_value *100, 2)}%' 
+        
         # show max quadratic utility dataframes
-        col1.write('Máxima utilidade quadrática:')
+        col1.write('Métricas:')
         col1.data_editor(max_sqrt_df)
-        col1.write('Pesos de cada ativo:')
-        col1.data_editor(ef3_weights2, hide_index  = True)
+        col2.write('Pesos de cada ativo:')
+        col2.data_editor(ef3_weights2, hide_index  = True)
 
 
 
@@ -328,6 +349,13 @@ if button_otm:
         values_risk = np.dot(list(w_min_vol.values()),initial_inv)
         values_return = np.dot(list(w_max_q.values()),initial_inv)
 
+        
+        
+        st.markdown('---')
+        
+
+        st.subheader('Otimização pelo algoritmo Hierarchical Risk Parity (HRP)')
+        col1, col2 = st.columns(2, gap = "medium")
 
         # HRP optimization        
 
@@ -363,7 +391,7 @@ if button_otm:
         cov_matrix = hrp_returns.cov() * 252
         
         def return_portfolio(w, ret):
-            # return capm
+            # return 
             return  (w* ret).sum()
 
         def cov_portfolio(w, cov_matrix):
@@ -390,11 +418,16 @@ if button_otm:
             sum_betas += (dict_betas[i] * dict_columns[i])
 
 
-        # add beta portfolio to metrics min vol dataframe
-        hrp_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}%' 
+        capm_value = capm_calc(list(data.columns), dict_betas, dict_columns, ibov_mean, tax_w_risk) 
 
-        col2.write('Otimização Hierarchical Risk Parity (HRP):')
-        col2.data_editor(hrp_df)
+        # add beta portfolio to metrics min vol dataframe
+        hrp_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}' 
+
+        # add capm value to metrics dataframe
+        hrp_df.loc['CAPM'] = f'{round(capm_value *100, 2)}%' 
+        
+        col1.write('Métricas')
+        col1.data_editor(hrp_df)
 
 
         #col2.write('Índice Sharpe:')
@@ -416,12 +449,80 @@ if button_otm:
         col2.data_editor(df_hrp, hide_index  = True)
 
         
+        st.markdown('---')
+
+
+
+
+        # Baseline Portfolio with equals weights
+        st.subheader('Portfólio de pesos iguais')
+             
+        col1, col2 = st.columns(2, gap = "medium")
+
+        assets_len = len(data.columns)
+
+        # weights for baseline portfolio
+        weights_equals = np.full(assets_len,(1 / assets_len))
+
+        # risk for baseline portfolio
+        sigma_equals = cov_portfolio(weights_equals, cov_matrix)*100
+
+        # returns for baseline portfolio
+        ret_equals = return_portfolio(weights_equals, mean).sum() *100
+
+        # sharpe ratio for baseline portfolio
+        sharp_equals = (ret_equals - tax_w_risk) / sigma_equals
+
+        
+        # weight dataframe 
+        equals_weight_df = pd.DataFrame(ef3_weights.items(), columns = ['Ativos', 'Pesos'])
+        equals_weight_df['Beta'] = dict_betas.values()
+        equals_weight_df['Pesos'] = weights_equals
+
+
+        # dict equals weights and calculating beta
+        dict_equals = {}
+        sum_betas = 0
+
+        for columns in data.columns:
+            dict_equals[columns] = weights_equals[0]
+            sum_betas += (dict_betas[columns] * equals_weight_df.loc[equals_weight_df['Ativos'] == columns, "Pesos"].values[0])
+        
+
+
+        # metrics dataframe for baseline portfolio 
+        equals_df = pd.DataFrame(0, columns = ['Valor'], index = ['Índice Sharpe', 'Volatilidade anual', 'Retorno esperado anual'])
+        equals_df.loc['Índice Sharpe'] = f'{round(sharpe_3, 2)}'
+        equals_df.loc['Volatilidade anual'] = f'{round(std_tangent3*100, 2)}%'
+        equals_df.loc['Retorno esperado anual'] = f'{round(ret_tangent3*100, 2)}%'
+
+        capm_value = capm_calc(list(data.columns), dict_betas, dict_equals, ibov_mean, tax_w_risk) 
+        
+
+        values_equals = np.dot(weights_equals,initial_inv)
+
+        # add beta portfolio to dataframe
+        equals_df.loc['Beta do portfólio'] = f'{round(sum_betas, 2)}' 
+
+        # add capm value to dataframe
+        equals_df.loc['CAPM'] = f'{round(capm_value *100, 2)}%'
+
+        # show dataframes
+        col1.write('Métricas')
+        col1.data_editor(equals_df)
+
+        col2.write("Pesos de cada ativo:")    
+        col2.data_editor(equals_weight_df, hide_index  = True)
+
+
+
 
         # creating columns of every optimization
-        returns['sharpe otm'] = 0
-        returns['cla otm'] = 0
-        returns['max_sqrt otm'] = 0
-        returns['hrp otm'] = 0
+        returns['sharpe otp'] = 0
+        returns['cla otp'] = 0
+        returns['max_sqrt otp'] = 0
+        returns['hrp otp'] = 0
+        returns['equals_portf'] = 0
 
 
 
@@ -432,7 +533,8 @@ if button_otm:
             sum_all_risk = 0
             sum_all_return = 0
             sum_all_hrp = 0
-            
+            sum_all_equals = 0
+
             for x in range(len(values_sharpe)):
                 
                 # sum returns sharpe weights
@@ -454,12 +556,17 @@ if button_otm:
                 hrp = (1+(returns.iloc[i,x]))* values_hrp[x]
                 sum_all_hrp = sum_all_hrp + hrp
                 values_hrp[x] = hrp
-                
-            returns['sharpe otm'].iloc[i] = sum_all_sharpe
-            returns['cla otm'].iloc[i] = sum_all_risk
-            returns['max_sqrt otm'].iloc[i] = sum_all_return
-            returns['hrp otm'].iloc[i] = sum_all_hrp
 
+                # sum returns equals weights
+                equals = (1+(returns.iloc[i,x]))* values_equals[x]
+                sum_all_equals = sum_all_equals + equals
+                values_equals[x] = equals
+                
+            returns['sharpe otp'].iloc[i] = sum_all_sharpe
+            returns['cla otp'].iloc[i] = sum_all_risk
+            returns['max_sqrt otp'].iloc[i] = sum_all_return
+            returns['hrp otp'].iloc[i] = sum_all_hrp
+            returns['equals_portf'].iloc[i] = sum_all_equals
 
         # smooth lines with moving average
         def smooth(y, box_pts):
@@ -498,8 +605,12 @@ if button_otm:
         
         # max quadratic utility plot
         fig.add_scatter(x = np.array(std_tangent3),y = np.array(ret_tangent3), 
-                            name = 'Máxima utilidade', mode = 'markers', marker_symbol = 'diamond',marker = dict(size=15, color = 'Green'))
+                            name = 'Máximo Retorno', mode = 'markers', marker_symbol = 'diamond',marker = dict(size=15, color = 'Green'))
         
+        # equals weights portfolio plot
+        fig.add_scatter(x = np.array(sigma_equals/100),y = np.array(ret_equals/100), 
+                            name = 'Pesos Iguais', mode = 'markers', marker_symbol = 'circle',marker = dict(size=15, color = 'Purple'))   
+
         # hrp plot
         ##fig.add_scatter(x = np.array(sigma_/100),y = np.array(ret_/100), 
          ##                   name = 'HRP', mode = 'markers', marker_symbol = 'circle',marker = dict(size=15, color = 'Purple'))
@@ -512,33 +623,35 @@ if button_otm:
 
 
         # portfolios historics
-        sharpe_rent = returns['sharpe otm'] / returns['sharpe otm'][0] -1
-        cla_rent = returns['cla otm'] / returns['cla otm'][0] -1
-        max_sqrt_rent = returns['max_sqrt otm'] / returns['max_sqrt otm'][0] -1
-        hrp_rent = returns['hrp otm'] / returns['hrp otm'][0] -1
+        sharpe_rent = returns['sharpe otp'] / returns['sharpe otp'][0] -1
+        cla_rent = returns['cla otp'] / returns['cla otp'][0] -1
+        max_sqrt_rent = returns['max_sqrt otp'] / returns['max_sqrt otp'][0] -1
+        hrp_rent = returns['hrp otp'] / returns['hrp otp'][0] -1
+        equals_rent = returns['equals_portf'] / returns['equals_portf'][0] -1
         ibov_rent = df_ibov / df_ibov[0] -1
         
         
         figura = px.line(title = f'Retorno dos portfólios desde {start_date.year} X IBOV')
         figura.add_scatter(y = smooth(sharpe_rent,10), name = 'Índice Sharpe')
         figura.add_scatter(y = smooth(cla_rent,10), name = 'Mínima Volatilidade')
-        figura.add_scatter(y = smooth(max_sqrt_rent,10), name = 'Máxima utilidade')
+        figura.add_scatter(y = smooth(max_sqrt_rent,10), name = 'Máximo Retorno')
         figura.add_scatter(y = smooth(hrp_rent,10), name = 'HRP')
+        figura.add_scatter(y = smooth(equals_rent,10), name = 'Pesos Iguais')
         figura.add_scatter(y = smooth(ibov_rent,10), name = 'IBOV')
-        figura.update_layout(width = 900)
+        figura.update_layout(width = 900, xaxis_title = 'Dias', yaxis_title = 'Rentabilidade')
         st.plotly_chart(figura, width = 900)
 
-
-        df_ = pd.DataFrame((returns.iloc[-1,-4:] /initial_inv -1) *100  )
+        
+        df_ = pd.DataFrame((returns.iloc[-1,-5:] /initial_inv -1) *100  )
         df_.columns = ['Rentabilidade no Período']
-        df_.index = ['Índice Sharpe','Mínima Volatilidade', 'Máxima Utilidade', 'HRP']
+        df_.index = ['Índice Sharpe','Mínima Volatilidade', 'Máximo Retorno', 'HRP', 'Pesos Iguais']
         df_['Rentabilidade no Período'] = list(map(lambda x: f'{round(x,2)}%',df_.values.reshape(-1)))
     
 
         st.write(df_.T )
         
         lists_pred = monte_carlo_projection(returns, initial_inv)
-        pred_sharpe, pred_risk, pred_mqu, pred_hrp = lists_pred
+        pred_sharpe, pred_risk, pred_mqu, pred_hrp, pred_equals= lists_pred
 
         # Monte Carlo simulation for every portfolio
         # best projection
@@ -546,39 +659,266 @@ if button_otm:
         max_risk = np.argmax(pred_risk[-1,:].flatten())
         max_mqu = np.argmax(pred_mqu[-1,:].flatten())
         max_hrp = np.argmax(pred_hrp[-1,:].flatten())
+        max_equals = np.argmax(pred_equals[-1,:].flatten())
 
         # worst projection 
         min_sharpe = np.argmin(pred_sharpe[-1,:].flatten())
         min_risk = np.argmin(pred_risk[-1,:].flatten())
         min_mqu = np.argmin(pred_mqu[-1,:].flatten())
         min_hrp = np.argmin(pred_hrp[-1,:].flatten())
+        min_equals = np.argmin(pred_equals[-1,:].flatten())
 
+        st.markdown('---')
         years_proj = 3
-        st.subheader(f'Simulações Monte Carlo {years_proj} anos com 1 mil simulações')
+        st.subheader(f'Simulação: {years_proj} anos')
 
-        # max sharpe projection
+
+
+        # Max sharpe projection
+        
+
+
         fig = px.line(title = 'Portfólio Índice sharpe')
-        fig.add_scatter(y = pred_sharpe.T[max_sharpe], name = 'Melhor projeção');
-        fig.add_scatter(y = pred_sharpe.T[min_sharpe], name = 'Pior projeção');
+        #fig.add_scatter(y = pred_sharpe.T[max_sharpe], name = 'Melhor projeção');
+        #fig.add_scatter(y = pred_sharpe.T[min_sharpe], name = 'Pior projeção');
+        #profit_end = len(pred_sharpe[-1][pred_sharpe[-1]>initial_inv])/pred_sharpe.shape[1]
+        
+        # sharpe projection statistics
+        
+        #stds_sharpe_monte_carlo = pred_sharpe.std(axis = 1)
+        #conf_inter_sharpe = stats.norm.interval(0.95, loc = means_sharpe_monte_carlo, 
+         #                                       scale = stds_sharpe_monte_carlo)
+        #conf_inter_sharpe = np.nan_to_num(conf_inter_sharpe,nan = 0, posinf = 0, neginf = 0)
+        
+        # calculating VaR sharpe portfolio
+        alpha = 1
+        last_sharpe = pred_sharpe[-1]
+        Var = np.percentile(last_sharpe, alpha)
+        
+        # average values 
+        avg_sharpe_monte_carlo = pred_sharpe.mean(axis = 1)
 
-        profit_end = len(pred_sharpe[-1][pred_sharpe[-1]>initial_inv])/pred_sharpe.shape[1]
+        # plots plotly express
+        # min sharpe
+        fig.add_scatter(x = list(range(0,252*years_proj)),y = pred_sharpe.T[min_sharpe], name = 'Minimo',
+                marker = dict(color = '#a020f0'))
+        # max sharpe
+        fig.add_trace(go.Scatter(x = list(range(0,252*years_proj)), y= pred_sharpe.T[max_sharpe], 
+                         fill = 'tonexty', name = 'Intervalo', marker = dict(color = '#a020f0'), opacity = 0.1))
+        # average
+        fig.add_scatter(y = avg_sharpe_monte_carlo[1:], name = 'Média', marker = dict(color = 'green'))
+        # Var metric
+        fig.add_hline(y = Var, line_dash = 'dot', annotation_text = f'<b>VaR:R${round(Var,2)} </b>', annotation_font_color = 'red',
+              annotation_position = 'bottom left', line_color = 'red')
+        # initial value investment
+        fig.add_hline(y = initial_inv, line_dash = 'dash', annotation_text = f'<b>R$ {round(initial_inv,2)}</b>', 
+                      annotation_font_color = 'black', annotation_position = 'top right', line_color = 'black')
+        
+        for trace in fig['data']:
+    
+            if (trace['name'] == 'Minimo'): trace['showlegend'] = False
+        
+        fig.update_annotations(font=dict(size=18))
+        fig.update_layout(xaxis_title = 'Dias', yaxis_title = 'Rendimento')#plot_bgcolor = 'white')
+        #fig.update_xaxes(mirror = True, ticks = 'outside', showline = True, linecolor = 'black', gridcolor = 'lightgrey')
+        #fig.update_yaxes(mirror = True, ticks = 'outside', showline = True, linecolor = 'black', gridcolor = 'lightgrey')
+        
         # max sharpe plot
         st.plotly_chart(fig)
 
+        # insights 
+        st.markdown(f'Com <span style="color: Green;">{100-alpha}% </span> de confiança o portfolio de <span style="color: Green;">R\${float(initial_inv)} </span> nao reduzirá menos que <span style="color: Orange;"> R\${round(Var,2)}</span> no final de <b>{years_proj}</b> anos', unsafe_allow_html=True)
+        st.markdown(f'Em <span style="color: Red;">{alpha}% </span> das simulações a perda total no final de {years_proj} anos será mais que <span style="color: Red;">R\${round(initial_inv - Var,2)}</span>',  unsafe_allow_html=True)
         # max sharpe profit scenarios
-        st.write(f'{round(profit_end*100,2)}% dos cenários com lucros no final de {years_proj} anos')
+        #st.write(f'{round(profit_end*100,2)}% dos cenários com lucros no final de {years_proj} anos')
+
+        st.markdown('---')
+        # Min Vol projection
 
 
 
         fig = px.line(title = 'Portfólio Min Vol')
-        fig.add_scatter(y = pred_risk.T[max_risk], name = 'Melhor projeção');
-        fig.add_scatter(y = pred_risk.T[min_risk], name = 'Pior projeção');
+
+        # calculating VaR sharpe portfolio
+        last_risk = pred_risk[-1]
+        Var = np.percentile(last_risk, alpha)
+        # average values 
+        avg_risk_monte_carlo = pred_risk.mean(axis = 1)
+
+
+        # plots plotly express
+        # min risk
+        fig.add_scatter(x = list(range(0,252*years_proj)),y = pred_risk.T[min_risk], name = 'Minimo',
+                marker = dict(color = '#a020f0'))
+        # max risk
+        fig.add_trace(go.Scatter(x = list(range(0,252*years_proj)), y= pred_risk.T[max_risk], 
+                         fill = 'tonexty', name = 'Intervalo', marker = dict(color = '#a020f0'), opacity = 0.1))
+        # average
+        fig.add_scatter(y = avg_risk_monte_carlo[1:], name = 'Média', marker = dict(color = 'green'))
+        # Var metric
+        fig.add_hline(y = Var, line_dash = 'dot', annotation_text = f'<b>VaR: {round(Var,2)}</b>', annotation_font_color = 'red',
+              annotation_position = 'bottom left', line_color = 'red')
+        # initial value investment
+        fig.add_hline(y = initial_inv, line_dash = 'dash', annotation_text = f'<b>{initial_inv}</b>', 
+                      annotation_font_color = 'black', annotation_position = 'top right', line_color = 'black')
+        
+        for trace in fig['data']:
+    
+            if (trace['name'] == 'Minimo'): trace['showlegend'] = False
+        
+        fig.update_annotations(font=dict(size=18))
+        fig.update_layout(xaxis_title = 'Dias', yaxis_title = 'Rendimento')#plot_bgcolor = 'white')
+
+
+
+        #fig.add_scatter(y = pred_risk.T[max_risk], name = 'Melhor projeção');
+        #fig.add_scatter(y = pred_risk.T[min_risk], name = 'Pior projeção');
 
         # min vol projection
         st.plotly_chart(fig)
+        # insights
+        st.write(f'Com {100-alpha}% de confiança o portfolio de R\${float(initial_inv)} nao reduzirá menos que R\${round(Var,2)} no final de {years_proj} anos')
+        st.write(f'Em {alpha}% das simulações a perda total no final de {years_proj} anos será mais que R\${round(initial_inv - Var,2)}')
         #plt.plot(returns.iloc[:,-4:])
         
         
+        st.markdown('---')
+        # Max utility
+
+
+
+        fig = px.line(title = 'Portfólio Maximo Retorno')
+
+        # calculating VaR max utility portfolio
+        last_return = pred_mqu[-1]
+        Var = np.percentile(last_return, alpha)
+        # average values 
+        avg_mqu_monte_carlo = pred_mqu.mean(axis = 1)
+
+
+
+        # plots plotly express
+        # max utility
+        fig.add_scatter(x = list(range(0,252*years_proj)),y = pred_mqu.T[min_mqu], name = 'Minimo',
+                marker = dict(color = '#a020f0'))
+        # max risk
+        fig.add_trace(go.Scatter(x = list(range(0,252*years_proj)), y= pred_mqu.T[max_mqu], 
+                         fill = 'tonexty', name = 'Intervalo', marker = dict(color = '#a020f0'), opacity = 0.1))
+        # average
+        fig.add_scatter(y = avg_mqu_monte_carlo[1:], name = 'Média', marker = dict(color = 'green'))
+        # Var metric
+        fig.add_hline(y = Var, line_dash = 'dot', annotation_text = f'<b>VaR: {round(Var,2)}</b>', annotation_font_color = 'red',
+              annotation_position = 'bottom left', line_color = 'red')
+        # initial value investment
+        fig.add_hline(y = initial_inv, line_dash = 'dash', annotation_text = f'<b>{initial_inv}</b>', 
+                      annotation_font_color = 'black', annotation_position = 'top right', line_color = 'black')
+        
+        for trace in fig['data']:
+    
+            if (trace['name'] == 'Minimo'): trace['showlegend'] = False
+        
+        fig.update_annotations(font=dict(size=18))
+        fig.update_layout(xaxis_title = 'Dias', yaxis_title = 'Rendimento')#plot_bgcolor = 'white')
+        
+
+        # max utility projection
+        st.plotly_chart(fig)
+        # insights
+        st.write(f'Com {100-alpha}% de confiança o portfolio de R\${float(initial_inv)} nao reduzirá menos que R\${round(Var,2)} no final de {years_proj} anos')
+        st.write(f'Em {alpha}% das simulações a perda total no final de {years_proj} anos será mais que R\${round(initial_inv - Var,2)}')
+        #plt.plot(returns.iloc[:,-4:])
+
+
+
+
+        # HRP
+
+        fig = px.line(title = 'Portfólio HRP')
+
+        # calculating VaR HRP portfolio
+        last_hrp = pred_hrp[-1]
+        Var = np.percentile(last_hrp, alpha)
+        # average values 
+        avg_hrp_monte_carlo = pred_hrp.mean(axis = 1)
+
+
+
+        # plots plotly express
+        # HRP
+        fig.add_scatter(x = list(range(0,252*years_proj)),y = pred_hrp.T[min_hrp], name = 'Minimo',
+                marker = dict(color = '#a020f0'))
+        # max hrp
+        fig.add_trace(go.Scatter(x = list(range(0,252*years_proj)), y= pred_hrp.T[max_hrp], 
+                         fill = 'tonexty', name = 'Intervalo', marker = dict(color = '#a020f0'), opacity = 0.1))
+        # average
+        fig.add_scatter(y = avg_hrp_monte_carlo[1:], name = 'Média', marker = dict(color = 'green'))
+        # Var metric
+        fig.add_hline(y = Var, line_dash = 'dot', annotation_text = f'<b>VaR: {round(Var,2)}</b>', annotation_font_color = 'red',
+              annotation_position = 'bottom left', line_color = 'red')
+        # initial value investment
+        fig.add_hline(y = initial_inv, line_dash = 'dash', annotation_text = f'<b>{initial_inv}</b>', 
+                      annotation_font_color = 'black', annotation_position = 'top right', line_color = 'black')
+        
+        for trace in fig['data']:
+    
+            if (trace['name'] == 'Minimo'): trace['showlegend'] = False
+        
+        fig.update_annotations(font=dict(size=18))
+        fig.update_layout(xaxis_title = 'Dias', yaxis_title = 'Rendimento')#plot_bgcolor = 'white')
+
+
+        # HRP projection
+        st.plotly_chart(fig)
+        # insights
+        st.write(f'Com {100-alpha}% de confiança o portfolio de R\${float(initial_inv)} nao reduzirá menos que R\${round(Var,2)} no final de {years_proj} anos')
+        st.write(f'Em {alpha}% das simulações a perda total no final de {years_proj} anos será mais que R\${round(initial_inv - Var,2)}')
+        #plt.plot(returns.iloc[:,-4:])
+
+
+
+
+
+        # Baseline portfolio projection
+        fig = px.line(title = 'Portfólio de Pesos Iguais')
+
+         # calculating VaR 
+        last_equals = pred_equals[-1]
+        Var = np.percentile(last_equals, alpha)
+        # average values 
+        avg_equals_monte_carlo = pred_equals.mean(axis = 1)
+
+
+
+         # plots plotly express
+        # Baseline
+        fig.add_scatter(x = list(range(0,252*years_proj)),y = pred_equals.T[min_equals], name = 'Minimo',
+                marker = dict(color = '#a020f0'))
+        # max hrp
+        fig.add_trace(go.Scatter(x = list(range(0,252*years_proj)), y= pred_equals.T[max_equals], 
+                         fill = 'tonexty', name = 'Intervalo', marker = dict(color = '#a020f0'), opacity = 0.1))
+        # average
+        fig.add_scatter(y = avg_equals_monte_carlo[1:], name = 'Média', marker = dict(color = 'green'))
+        # Var metric
+        fig.add_hline(y = Var, line_dash = 'dot', annotation_text = f'<b>VaR: {round(Var,2)}</b>', annotation_font_color = 'red',
+              annotation_position = 'bottom left', line_color = 'red')
+        # initial value investment
+        fig.add_hline(y = initial_inv, line_dash = 'dash', annotation_text = f'<b>{initial_inv}</b>', 
+                      annotation_font_color = 'black', annotation_position = 'top right', line_color = 'black')
+        
+        for trace in fig['data']:
+    
+            if (trace['name'] == 'Minimo'): trace['showlegend'] = False
+        
+        fig.update_annotations(font=dict(size=18))
+        fig.update_layout(xaxis_title = 'Dias', yaxis_title = 'Rendimento')#plot_bgcolor = 'white')
+
+
+        # projection
+        st.plotly_chart(fig)
+        # insights
+        st.write(f'Com {100-alpha}% de confiança o portfolio de R\${float(initial_inv)} nao reduzirá menos que R\${round(Var,2)} no final de {years_proj} anos')
+        st.write(f'Em {alpha}% das simulações a perda total no final de {years_proj} anos será mais que R\${round(initial_inv - Var,2)}')
+        #plt.plot(returns.iloc[:,-4:])
 
 
     else:

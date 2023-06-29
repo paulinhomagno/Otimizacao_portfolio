@@ -6,7 +6,7 @@ from scipy import stats
 def monte_carlo_projection(data_returns: pd.DataFrame, amount):
     
     # returns percentage
-    returns_pct = np.log1p(data_returns[['sharpe otm','cla otm','max_sqrt otm','hrp otm']].pct_change())
+    returns_pct = np.log1p(data_returns[['sharpe otp','cla otp','max_sqrt otp','hrp otp', 'equals_portf']].pct_change())
     returns_pct.fillna(0, inplace=True)
     
     # calculcates statistics
@@ -38,6 +38,10 @@ def monte_carlo_projection(data_returns: pd.DataFrame, amount):
     Z = stats.norm.ppf(np.random.rand(days, simulation))
     daily_hrp = np.exp(drift[3] + std_mc[3] * Z)
     
+    np.random.seed(4)
+    Z = stats.norm.ppf(np.random.rand(days, simulation))
+    daily_equals = np.exp(drift[4] + std_mc[4] * Z)
+    
     # the last row every column to predict
     pred_sharpe = np.zeros_like(daily_sharpe)
     pred_sharpe[0] = amount #data_returns['sharpe otm'][-1]
@@ -51,6 +55,9 @@ def monte_carlo_projection(data_returns: pd.DataFrame, amount):
     pred_hrp = np.zeros_like(daily_hrp)
     pred_hrp[0] = amount #data_returns['hrp otm'][-1]
     
+    pred_equals = np.zeros_like(daily_equals)
+    pred_equals[0] = amount #data_returns['hrp otm'][-1]
+    
     # calculate projections every day
     for day in range(1, days):
       
@@ -58,5 +65,6 @@ def monte_carlo_projection(data_returns: pd.DataFrame, amount):
         pred_risk[day] = pred_risk[day - 1] * daily_risk[day]
         pred_mqu[day] = pred_mqu[day - 1] * daily_mqu[day]
         pred_hrp[day] = pred_hrp[day - 1] * daily_hrp[day]
+        pred_equals[day] = pred_equals[day - 1] * daily_equals[day]
         
-    return [pred_sharpe, pred_risk, pred_mqu, pred_hrp]
+    return [pred_sharpe, pred_risk, pred_mqu, pred_hrp, pred_equals]
