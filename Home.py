@@ -1,8 +1,9 @@
 import streamlit as st
 from PIL import Image
 
-
-st.set_page_config(layout="wide")
+# page configuration
+st.set_page_config(layout="wide", page_title = 'Otimização de portfólio',
+    page_icon = 'https://www.svgrepo.com/show/483192/big-money.svg')
 
 st.title(':white[Sistema de Otimização de portfólio]')
 
