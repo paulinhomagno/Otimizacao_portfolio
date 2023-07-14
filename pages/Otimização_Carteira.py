@@ -4,6 +4,7 @@ from streamlit_tags import st_tags
 import truncar
 import pickle
 import numpy as np
+import time
 
 from pandas_datareader import data as pdr
 import datetime as dt
@@ -32,6 +33,9 @@ from scipy import stats
 import plotly.express as px
 import pickle
 
+# page configuration
+st.set_page_config(page_title = 'Otimização de portfólio',
+    page_icon = 'https://www.svgrepo.com/show/501844/wallet-wallet.svg')
 
 
 # title page
@@ -47,10 +51,6 @@ keywords = st_tags(
 # website for asset code information
 link = 'https://finance.yahoo.com/'
 st.markdown(f'<i>* Código dos ativos de acordo com o site: {link}</i>', unsafe_allow_html=True)
-    
-#num = truncar.truncar(6.558475, 4)
-#st.text(num)
-
 
 
 # min and max date from actual day
@@ -77,6 +77,10 @@ st.markdown('---')
 if button_otp:
 
     if initial_inv != 0:
+        
+        # calculating processing time
+        # initial time
+        init_time = time.time()
 
         # extract values assets function
         data = stocks_dataframe(start_date,0, keywords)
@@ -92,7 +96,6 @@ if button_otp:
         #covariance
         cov_matrix = returns.cov() * 252            
         
-        
         # calculates annual tax free risk 
         tax_w_risk = calculate_average_selic_annual(start_date.year)
         expected_r = expected_returns.capm_return(data, risk_free_rate = tax_w_risk, log_returns = True)
@@ -103,9 +106,9 @@ if button_otp:
         # pypfopt is not adjusted for inf, -inf, and nan values in returns and risk calculation
         # we use an conditional treatment to calculate log returns and covariance matrix and replace them in the variables
         if np.isnan(expected_r.values).any()or ~np.isfinite(expected_r.values).any():
-            #expected = data.pct_change().apply(lambda x: np.log1p(x))
             
-            expected_r = mean #* 252#replace([np.inf, -np.inf, np.nan], 0).mean() * 252
+            
+            expected_r = mean 
             
             S = cov_matrix
             
@@ -113,9 +116,9 @@ if button_otp:
         #fig, ax = plt.subplots(figsize = (2,2))
         #sns.heatmap(returns.corr(), annot = True, cmap="Blues");
         st.write("Correlação dos ativos:")
-        fig = px.imshow(returns.corr(), text_auto = True)
+        fig = px.imshow(returns.corr(), text_auto = True, aspect = "auto")
         
-        st.plotly_chart(fig, width = 300)
+        st.plotly_chart(fig)
 
         # benchmark for beta ibov
         ibov = '^BVSP'
@@ -158,7 +161,7 @@ if button_otp:
 
         st.subheader('Otimização por Índice Sharpe')
         # Sharpe ratio max and vol min        
-        col1, col2 = st.columns(2, gap = "medium")
+        col1, col2 = st.columns([2,3], gap = "medium")
 
 
         # EfficientFrontier by sharpe ratio
@@ -226,9 +229,12 @@ if button_otp:
                 
         st.markdown('---')
 
+
+
+
         st.subheader('Otimização pela Mínima Volatilidade')
 
-        col1, col2 = st.columns(2, gap = "medium")
+        col1, col2 = st.columns([2,3], gap = "medium")
 
         # min volatility optimization, CLA algorithm
         ef2 = CLA(expected_r, S)
@@ -288,7 +294,7 @@ if button_otp:
         
         st.subheader('Otimização pelo Maior Retorno')
         # second area column, max quadratic utility and HRP
-        col1, col2 = st.columns(2, gap = "medium")
+        col1, col2 = st.columns([2,3], gap = "medium")
 
         # Max quadratic utility optimization
         ef3 = EfficientFrontier(expected_r, S)
@@ -310,6 +316,7 @@ if button_otp:
         
         ef3_weights = ef3.clean_weights()
         ef3_weights2 = pd.DataFrame(ef3_weights.items(), columns = ['Ativos', 'Pesos'])
+        ef3_weights2['Valor à aplicar'] =  ef3_weights2['Pesos'] * initial_inv
         ef3_weights2['Beta'] = dict_betas.values()
 
 
@@ -355,7 +362,7 @@ if button_otp:
         
 
         st.subheader('Otimização pelo algoritmo Hierarchical Risk Parity (HRP)')
-        col1, col2 = st.columns(2, gap = "medium")
+        col1, col2 = st.columns([2,3], gap = "medium")
 
         # HRP optimization        
 
@@ -443,6 +450,8 @@ if button_otp:
             df_hrp.loc[i, 'Ativos']= keywords[i]
             df_hrp.loc[i, 'Pesos'] = w_hrp[i]
 
+
+        df_hrp['Valor à aplicar'] =  df_hrp['Pesos'] * initial_inv
         df_hrp['Beta'] = dict_betas.values()
         # show dataframe with assets and weights
         col2.write("Pesos de cada ativo:")    
@@ -457,7 +466,7 @@ if button_otp:
         # Baseline Portfolio with equals weights
         st.subheader('Portfólio de pesos iguais')
              
-        col1, col2 = st.columns(2, gap = "medium")
+        col1, col2 = st.columns([2,3], gap = "medium")
 
         assets_len = len(data.columns)
 
@@ -476,8 +485,9 @@ if button_otp:
         
         # weight dataframe 
         equals_weight_df = pd.DataFrame(ef3_weights.items(), columns = ['Ativos', 'Pesos'])
-        equals_weight_df['Beta'] = dict_betas.values()
         equals_weight_df['Pesos'] = weights_equals
+        equals_weight_df['Valor à aplicar'] =  equals_weight_df['Pesos'] * initial_inv
+        equals_weight_df['Beta'] = dict_betas.values()
 
 
         # dict equals weights and calculating beta
@@ -492,9 +502,9 @@ if button_otp:
 
         # metrics dataframe for baseline portfolio 
         equals_df = pd.DataFrame(0, columns = ['Valor'], index = ['Índice Sharpe', 'Volatilidade anual', 'Retorno esperado anual'])
-        equals_df.loc['Índice Sharpe'] = f'{round(sharpe_3, 2)}'
-        equals_df.loc['Volatilidade anual'] = f'{round(std_tangent3*100, 2)}%'
-        equals_df.loc['Retorno esperado anual'] = f'{round(ret_tangent3*100, 2)}%'
+        equals_df.loc['Índice Sharpe'] = f'{round(sharp_equals, 2)}'
+        equals_df.loc['Volatilidade anual'] = f'{round(sigma_equals, 2)}%'
+        equals_df.loc['Retorno esperado anual'] = f'{round(ret_equals, 2)}%'
 
         capm_value = capm_calc(list(data.columns), dict_betas, dict_equals, ibov_mean, tax_w_risk) 
         
@@ -508,6 +518,7 @@ if button_otp:
         equals_df.loc['CAPM'] = f'{round(capm_value *100, 2)}%'
 
         # show dataframes
+        
         col1.write('Métricas')
         col1.data_editor(equals_df)
 
@@ -597,23 +608,29 @@ if button_otp:
         
         # max sharpe plot
         fig.add_scatter(x = np.array(std_tangent),y = np.array(ret_tangent), 
-                            name = 'Maior Sharpe', mode = 'markers', marker_symbol = 'star',marker = dict(size=15, color = 'Red'))
+                            name = 'Maior Sharpe', mode = 'markers', marker_symbol = 'star',
+                            marker = dict(size=15, color = 'Red', line=dict(width = 2,color='Black')))
 
         # min vol plot
         fig.add_scatter(x = np.array(std_tangent2),y = np.array(ret_tangent2), 
-                            name = 'Menor Volatilidade', mode = 'markers', marker_symbol = 'x',marker = dict(size=15, color = 'Yellow'))
+                            name = 'Menor Volatilidade', mode = 'markers', 
+                            marker_symbol = 'x',marker = dict(size=15, color = 'Yellow', 
+                            line=dict(width = 2,color='Black')))
         
         # max quadratic utility plot
         fig.add_scatter(x = np.array(std_tangent3),y = np.array(ret_tangent3), 
-                            name = 'Máximo Retorno', mode = 'markers', marker_symbol = 'diamond',marker = dict(size=15, color = 'Green'))
+                            name = 'Máximo Retorno', mode = 'markers', marker_symbol = 'diamond',
+                            marker = dict(size=15, color = 'Green', line=dict(width = 2,color='Black')))
         
         # equals weights portfolio plot
         fig.add_scatter(x = np.array(sigma_equals/100),y = np.array(ret_equals/100), 
-                            name = 'Pesos Iguais', mode = 'markers', marker_symbol = 'circle',marker = dict(size=15, color = 'Purple'))   
+                            name = 'Pesos Iguais', mode = 'markers', marker_symbol = 'star-diamond',
+                            marker = dict(size=15, color = 'Orange', line=dict(width = 2,color='Black')))   
 
         # hrp plot
-        ##fig.add_scatter(x = np.array(sigma_/100),y = np.array(ret_/100), 
-         ##                   name = 'HRP', mode = 'markers', marker_symbol = 'circle',marker = dict(size=15, color = 'Purple'))
+        fig.add_scatter(x = np.array(sigma_/100),y = np.array(ret_/100), 
+                           name = 'HRP', mode = 'markers', marker_symbol = 'circle',
+                           marker = dict(size=15, color = 'Purple', line=dict(width = 2,color='Black')))
 
         
         fig.update_layout(legend = dict(yanchor = "bottom"))
@@ -642,13 +659,13 @@ if button_otp:
         st.plotly_chart(figura, width = 900)
 
         
-        df_ = pd.DataFrame((returns.iloc[-1,-5:] /initial_inv -1) *100  )
-        df_.columns = ['Rentabilidade no Período']
-        df_.index = ['Índice Sharpe','Mínima Volatilidade', 'Máximo Retorno', 'HRP', 'Pesos Iguais']
-        df_['Rentabilidade no Período'] = list(map(lambda x: f'{round(x,2)}%',df_.values.reshape(-1)))
+        df_portfolios = pd.DataFrame((returns.iloc[-1,-5:] /initial_inv -1) *100  )
+        df_portfolios.columns = ['Rentabilidade no Período']
+        df_portfolios.index = ['Índice Sharpe','Mínima Volatilidade', 'Máximo Retorno', 'HRP', 'Pesos Iguais']
+        df_portfolios['Rentabilidade no Período'] = list(map(lambda x: f'{round(x,2)}%',df_portfolios.values.reshape(-1)))
     
 
-        st.write(df_.T )
+        st.write(df_portfolios.T )
         
         lists_pred = monte_carlo_projection(returns, initial_inv)
         pred_sharpe, pred_risk, pred_mqu, pred_hrp, pred_equals= lists_pred
@@ -739,7 +756,7 @@ if button_otp:
 
         fig = px.line(title = 'Portfólio Min Vol')
 
-        # calculating VaR sharpe portfolio
+        # calculating VaR min vol portfolio
         last_risk = pred_risk[-1]
         Var = np.percentile(last_risk, alpha)
         # average values 
@@ -919,7 +936,11 @@ if button_otp:
         st.write(f'Com {100-alpha}% de confiança o portfolio de R\${float(initial_inv)} nao reduzirá menos que R\${round(Var,2)} no final de {years_proj} anos')
         st.write(f'Em {alpha}% das simulações a perda total no final de {years_proj} anos será mais que R\${round(initial_inv - Var,2)}')
         #plt.plot(returns.iloc[:,-4:])
+        
+        
+        end_time = time.time()
 
+        st.write(f' Tempo de execuçação: {round(end_time - init_time,4)} segundos')
 
     else:
         st.warning('Digite um valor para investimento!',  icon="⚠️")
