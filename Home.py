@@ -107,8 +107,10 @@ st.latex(r'''  \Omega =   \begin{bmatrix}
 
 
 st.markdown(""" <p align="justify"> <font FACE='Arial'><br>
-No que se refere ao risco, as medidas associadas à incerteza na distribuição  dos retornos são chamados de medidas de risco. As principais delas são a variância e o desvio-padrão.<br>
-Para mensurar é realizada através do desvio-padrão dos retornos do ativo analisado. Assim,o retorno é a variação do valor de um determinado ativo ao longo de um período.
+No que se refere ao risco, este pode ser subdividido em risco sistemático (risco que afeta os ativos na economia) e não sistemático (risco indiviuall que afeta somente o ativo).
+Quando se trata de um portfólio se foca no risco não sistemático, pois, o sistemático não se consegue diversificar.<br>
+Assim, as medidas associadas à incerteza na distribuição  dos retornos passados são chamados de medidas de risco, e no que se refere ao risco não sistemático, as principais delas são a variância e o desvio-padrão.<br>
+Para se mensurar é realizado cálculo através do desvio-padrão dos retornos do ativo analisado.
 
 </font></p>  <p align="center"> <font FACE='Arial'>
 Cálculo do risco pela variância:
@@ -159,3 +161,135 @@ Quanto maior o valor do Índice de Sharpe, melhor é considerado o desempenho aj
 Após construir a fronteira eficiente é possível calcular o índice Sharpe para cada ponto na fronteira e escolher o portfólio que oferece o maior índice Sharpe, indicando uma relação favorável entre o retorno esperado e o risco assumido.</font></p>""", unsafe_allow_html=True)
 
 #st.sidebar.write('Opções')
+
+st.subheader(' Índice Beta')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+O coeficiente de risco beta é um índice para um portfólio ou ativo indiviual e esta associado ao risco sistemático.
+Em resumo, ele indica qual a possibilidade de que uma ação/portfólio varie no mesmo sentido do mercado, representado por um índice (neste caso utilizado o Ibovesp). Então, um valor igual a 1 informa que o ativo tende a subir descer na mesma proporção do mercado.
+
+<br> Segue a fórmula utilizada:
+</font></p>""", unsafe_allow_html=True)
+
+st.latex(r'Beta = \frac{Cov(R_p, R_b)} {\sigma^2_b} ')
+st.latex(r'''R_p = retorno \ do \ ativo \\
+         R_b = retorno \ do \ mercado \\
+          \sigma^2_b = risco \ do \ mercado''')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+Para calcular o beta do portfólio basta multiplicar o beta de cada ativo pelo seu peso/percentual da carteira.
+</font></p>""", unsafe_allow_html=True)
+
+st.subheader(' Capital Asset Pricing Model (CAPM)')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+Também chamado de modelo de precificação de ativos, esta métrica mostra a relação linear entre o retorno esperado e o Beta, tanto para um ativo individual como para um portfólio.
+<br>Os conceitos de CAPM, podem contribuir com os investidores para o entendimento da relação entre risco esperado e recompensa, ou seja, o retorno justo (prêmio) a ser recebido dado o risco do ativo.
+<br> O modelo considera uma taxa mínima livre de risco (neste caso, considera-se a taxa SELIC), somada ao prêmio pelo risco que um determinado ativo oferece.
+<br> Para o cálculo do prêmio é utilizado o retorno esperado do mercado, nesta ferramenta é adotado a média de retornos do Ibovespa.
+Este prêmio é multiplicado pelo Beta do ativo, que conforme vimos, se resume a sensibilidade deste às variações do mercado. 
+<br>Então, quanto maior esta sensibilidade maior será o retorno exigido pelos investidores.
+<br>A fórmula fica assim:
+</font></p>""", unsafe_allow_html=True)
+
+st.latex(r' E(R) = R_f + \beta[ E(R_m) - R_f]')
+st.latex(r'''E(R) = retorno \ esperado \\
+R_f = Taxa \ livre \ de \ risco \\
+\beta = Beta \ do \ investimento \\
+E(R_m) = Retorno \ esperado \ do \ mercado \\
+[E(R_m) - R_f] = Prêmio de risco do mercado
+''')
+st.markdown(' <br> ', unsafe_allow_html=True)
+st.subheader('Hierarchical Risk Parity (HRP)')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+O Hierarchical Risk Parity (HRP) é um algoritmo de otimização de portfólios desenvolvido por Marcos Lopez de Prado, este combina teoria de grafos e aprendizazdo de máquina para construir uma carteira diversificada.
+<br>Este algoritmo se baseia em três estágios:<br>
+Tree clustering - a primeira etapa envolve dividir os ativos em diferentes clusters usando aprendizado de máquina.
+<br>Matrix Seriation -  esta segunda etapa, reorganiza as linhas e colunas da matriz de covariância, de forma que os maiores valores fiquem ao longo da diagonal.
+<br>Recursive bisection -  a terceira etapa,  envolve a atribuição de pesos reais do portfólio aos ativos.
+<br>
+No Tree clustering, aplica-se uma técnica de aprendizado não supervisionado que é a clusterização hierárquica. Esse tipo de algoritmo visa construir agrupamentos (clusters) segundo um métrica de semelhança entre os dados.
+Para isso é realizado a aquisição dos preços históricos, para montar uma carteira para ser otimizada.
+<br>
+A clusterização hierárquica será realizada sobre os retornos históricos do ativos da carteira. Para efetuar essa operação temos dois principais hiperparâmetros: método e métrica.
+<br>Método: Algoritmo utilizado para a clusterização que utiliza a fórmula a seguir:
+</font></p>""", unsafe_allow_html=True)
+
+st.latex(r' D(i,j) = \sqrt{0,5(1 - \rho (i,j))}')
+st.latex(r''' D(i,j) = matriz \ de \ distância \ de \ correlação \ entre \ dois \ ativos \\
+  \rho(i,j) = correlação entre dois ativos''')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+<br>Métrica: Tipo de medida que avalia a semelhança entre os dados, calculado com a distância euclidiana:
+</font></p>""", unsafe_allow_html=True)
+
+st.latex(r'\overline{D}(i,j) = \sqrt{\sum_{k=1}^n(D(k,i) - D (k,j))^2 }')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+Com esta matriz de distância constrói-se um conjunto de clusters (U) usando o processo de recursão (repetição de procedimento).
+O primeiro cluster é calculado desta forma:<br>
+</font></p>""", unsafe_allow_html=True)
+
+st.latex('U[1] = arg_{i,j}min \overline{D}(i,j)')
+st.latex(r'arg_{i,j}min = menor \ valor \ da \ matriz \ de \ distância')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+<br>EXEMPLO:
+</font></p>""", unsafe_allow_html=True)
+image = Image.open('image/hrp1.png')
+message = "Os ativos a e b tem a menor distância então estes dois se tornam um cluster"
+st.image(image, width=500, caption=message)
+
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+Após o cálculo deste primeiro cluster, a matriz é atualizada calculando as distâncias dos outros ativos do cluster.
+<br>O intuito combina recursivamente os ativos no portfólio em clusters e atualiza a matriz de distância até que se fique com apenas um único cluster.
+<br>Assim, para um ativo 𝑖 fora do cluster, a distância para o cluster recém-formado esta na fórmula:
+</font></p>""", unsafe_allow_html=True)
+st.latex('\overline{D}(i, U[1]) = min(\overline{D}(i,i^*, \overline{D}(i,j^*)))')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+<br>EXEMPLO:
+</font></p>""", unsafe_allow_html=True)
+
+image = Image.open('image/hrp2.png')
+message = "Usando a fórmula podemos calcular a distancia de c, d, e em relação ao cluster(a,b)"
+st.image(image, width=500, caption=message)
+st.latex(r'''\overline{D}(c,U[1])=min(\overline{D}(c,a),(c,b)\overline{D})=min(21,30)=21 \\
+\overline{D}(d,U[1])=min(\overline{D}(d,a),\overline{D}(d,b))=min(31,34)=31 \\
+\overline{D}(e,U[1])=min(\overline{D}(e,a),\overline{D}(e,b))=min(23,21)=21
+''')
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+Assim, repete-se o processo combinando os ativos no cluster e atualizando a matriz de distância até que se tenha um cluster gigante de ativos como a tabela abaixo,
+onde finalmente se chega na combinação d com o cluster ((a,b)c,e).
+</font></p>""", unsafe_allow_html=True)
+image = Image.open('image/hrp3.png')
+st.image(image, width=300)
+
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+No final da etapa da Tree Clustering os clusters podem ser visualizados no chamado dendograma, como no exemplo abaixo.
+</font></p>""", unsafe_allow_html=True)
+image = Image.open('image/hrp4.png')
+st.image(image, width=800)
+
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+<br>Na etapa Matrix Seriation atualiza-se as linhas e colunas da matriz de covariância, de forma que os maiores valores fiquem ao longo da diagonal. 
+Neste estágio os investimentos semelhantes são colocados juntos na matriz de covariância, e investimentos diferentes ficam distantes.
+</font></p>""", unsafe_allow_html=True)
+image = Image.open('image/hrp5.png')
+st.image(image, width=500)
+
+
+st.markdown(""" <p align="justify"> <font FACE='Arial'>
+Na última etapa do algoritmo os pesos serão atribuídos. 
+A matriz de covariâncias gerada na etapa anterior é fundamental, pois ela será utilizada para realizar a iteração nos nós do grafo do dendograma.
+- Início dos pesos, todos os ativos recebem peso igual à 1.
+- Com a matriz de covariâncias, percorre-se a árvore selecionando os sub-clusters e sub-matrizes respectivos. 
+O objetivo é realizar a diversificação de pesos entre ativos semelhantes. Cálculos dos pesos:
+</font></p>""", unsafe_allow_html=True)
+
+st.latex(r'''w = \frac {diag[V]^{-1}} {soma(diag[V]^{-1})}''')
