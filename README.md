@@ -5,6 +5,6 @@ O arquivo "Relatório" é a documentaçao, onde apresenta o planejamento e as et
 Os arquivos ".py" são as classes e funções criadas para cálculos.<br>
 O arquivo "Home.py" é a página home onde se acessa a ferramenta, criada com a biblioteca streamlit.<br>
 A pasta pages contém 2 páginas web, uma contém a explicação de todos os cálculos, métodos e métricas utilizados, a outra é são os códigos da ferramenta propriamente dita.<br>
-O arquivo ".ipynb" é um notebook com códigos prévios para o estudo e testes da ferramenta.<br>
+O arquivo ".ipynb" é um notebook com códigos prévios para o estudo e testes da ferramenta.<br><br>
 Segue link do funcionamento da ferramenta: https://www.linkedin.com/posts/activity-7096846506829258754-GR_z?utm_source=share&utm_medium=member_desktop
 
