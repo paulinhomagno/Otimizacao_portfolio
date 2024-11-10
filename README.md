@@ -1,5 +1,5 @@
 # Otimizacao de portfolio de ativos
-Projeto Aplicado para a conclusão do MBA em Ciência de Dados na XP Educação.<br>
+<h2>Projeto Aplicado para a conclusão do MBA em Ciência de Dados na XP Educação.</h2><br>
 Este trabalho teve o objetivo de criar uma uma ferramenta para otimização de carteira de ativos, utilizando-se de técnicas de inovaçao, design thinking, metodologia ágil, programação em Python e machine learning.<br>
 O arquivo "Relatório" é a documentaçao, onde apresenta o planejamento e as etapas de implementação do projeto a partir do layout disposto pela instituição.<br>
 Os arquivos ".py" são as classes e funções criadas para cálculos.<br>
